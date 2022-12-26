@@ -15,7 +15,7 @@
 
 typedef struct dir_data {
     char path[PATH_MAX];
-    DIR dir;
+    DIR *dir;
 } dir_data;
 
 typedef struct dir_node {
@@ -138,25 +138,25 @@ int insert_dir_path_to_queue(char *dir_path) {
         fprintf(stderr, "Directory %s: Permission denied.\n", dir_path);
         return PERMISSION_DENIED;
     }
-    printf("3\n");
 
     dir = opendir(dir_path);
-    if (dir == NULL) {
+    if(dir == NULL){
         fprintf(stderr, "Failed to open directory %s: %s\n", dir_path, strerror(errno));
         return EXIT_FAILURE;
     }
-    printf("4\n");
     dir_data = malloc(sizeof(dir_data));
     if (dir_data == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
         return EXIT_FAILURE;
     }
-    printf("5\n");
+    if (dir_data->dir == NULL) {
+        printf("dir_data->dir is NULL\n");
+    } else {
+        printf("dir_data->dir is not NULL, %p\n", dir_data->dir);
+    }
     printf("ptr %p, ptr %p\n", dir_data, dir);
-    dir_data->dir=*dir;
-    printf("6\n");
+    dir_data->dir=dir;
     strcpy(dir_data->path, dir_path);
-    printf("7\n");
 
     return insert_to_queue(dir_data);
 }
@@ -190,7 +190,7 @@ int thread_main(void *thread_param) {
             error_in_thread = 1;
             continue;
         }
-        while ((dp = readdir(&dir_data->dir)) != NULL) {
+        while ((dp = readdir(dir_data->dir)) != NULL) {
             if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0) {
                 continue;
             }
@@ -214,7 +214,7 @@ int thread_main(void *thread_param) {
                 printf("%s\n", new_path);
             }
         }
-        closedir(&dir_data->dir);
+        closedir(dir_data->dir);
         free(dir_data);
     }
     thrd_exit(EXIT_SUCCESS);
