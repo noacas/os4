@@ -60,6 +60,7 @@ dir_data* pop_from_queue(long thread_number);
 void wake_up_thread_if_needed();
 int insert_dir_path_to_queue(char *dir_path);
 int thread_main(void *thread_param);
+void wait_for_wakeup();
 
 int register_thread_to_queue(long thread_number) {
     thread_node * new_node = malloc(sizeof (thread_node));
@@ -85,6 +86,7 @@ int register_thread_to_queue(long thread_number) {
 }
 
 int insert_to_queue(dir_data *data) {
+    printf("thread trying to insert to queue");
     dir_node *new_node = malloc(sizeof(dir_node));
     if (new_node == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
@@ -102,6 +104,7 @@ int insert_to_queue(dir_data *data) {
         queue.first = new_node;
     }
 
+    printf("trying to wakeup thread, waiting are %d", threads_pop_queue.size);
     wake_up_thread_if_needed();
 
     mtx_unlock(&queue_mutex);
@@ -174,14 +177,7 @@ int insert_dir_path_to_queue(char *dir_path) {
     return insert_to_queue(dir_data);
 }
 
-
-int thread_main(void *thread_param) {
-    long thread_number = (long)thread_param;
-    struct stat entry_stats;
-    struct dirent *dp;
-    dir_data *dir_data;
-    char new_path[PATH_MAX];
-
+void wait_for_wakeup() {
     //sleep and broadcast to wake up all threads after they are all ready
     mtx_lock(&count_ready_threads_mutex);
     ready_threads++;
@@ -192,6 +188,18 @@ int thread_main(void *thread_param) {
         cnd_wait(&start_all_threads_cv, &count_ready_threads_mutex);
     }
     mtx_unlock(&count_ready_threads_mutex);
+}
+
+
+int thread_main(void *thread_param) {
+    long thread_number = (long)thread_param;
+    struct stat entry_stats;
+    struct dirent *dp;
+    dir_data *dir_data;
+    char new_path[PATH_MAX];
+
+    wait_for_wakeup();
+    prinf("thread number %d awaken", thread_number);
 
     while (1) {
         dir_data = pop_from_queue(thread_number);
