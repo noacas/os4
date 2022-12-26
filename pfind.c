@@ -199,7 +199,7 @@ int thread_main(void *thread_param) {
     char new_path[PATH_MAX];
 
     wait_for_wakeup();
-    printf("thread number %d awaken", thread_number);
+    printf("thread number %ld awaken", thread_number);
 
     while (1) {
         dir_data = pop_from_queue(thread_number);
