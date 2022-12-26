@@ -104,7 +104,7 @@ int insert_to_queue(dir_data *data) {
         queue.first = new_node;
     }
 
-    printf("trying to wakeup thread, waiting are %d", threads_pop_queue.size);
+    printf("trying to wakeup thread, waiting are %d\n", threads_pop_queue.size);
     wake_up_thread_if_needed();
 
     mtx_unlock(&queue_mutex);
@@ -136,6 +136,7 @@ dir_data* pop_from_queue(long thread_number) {
 
 void wake_up_thread_if_needed() {
     if (threads_pop_queue.size == 0) {
+        printf("no waiting threads\n");
         return;
     }
     thread_node *node = threads_pop_queue.first;
@@ -145,6 +146,7 @@ void wake_up_thread_if_needed() {
     }
     handoff_to = node->thread_number; // giving priority to the thread
     threads_pop_queue.size--;
+    printf("waking up thread number %ld", handoff_to);
     free(node);
 }
 
@@ -199,7 +201,7 @@ int thread_main(void *thread_param) {
     char new_path[PATH_MAX];
 
     wait_for_wakeup();
-    printf("thread number %ld awaken", thread_number);
+    printf("thread number %ld awaken\n", thread_number);
 
     while (1) {
         dir_data = pop_from_queue(thread_number);
@@ -215,7 +217,7 @@ int thread_main(void *thread_param) {
             strcpy(new_path, dir_data->path);
             strcat(new_path, "/");
             strcat(new_path, dp->d_name);
-            printf("found path %s", new_path);
+            printf("found path %s\n", new_path);
             if (lstat(new_path, &entry_stats) != 0){
                 fprintf(stderr, "Failed to get stats on %s: %s\n", new_path, strerror(errno));
                 error_in_thread = 1;
