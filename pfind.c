@@ -28,21 +28,12 @@ typedef struct dir_queue {
     dir_node *last;
 } dir_queue;
 
-typedef struct thread_node {
-    long thread_number;
-    struct thread_node *next;
-} thread_node;
-
-typedef struct threads_queue {
-    int size;
-    thread_node *first;
-    thread_node *last;
-} threads_queue;
-
 static int number_of_threads;
 static char *search_term;
 static dir_queue queue;
-static threads_queue threads_pop_queue;
+static long *threads_queue;
+static int thread_queue_first;
+static int thread_queue_last;
 _Atomic int number_of_files;
 _Atomic int error_in_thread = 0;
 mtx_t count_ready_threads_mutex;
@@ -54,52 +45,38 @@ cnd_t all_threads_are_idle_cv;
 cnd_t *threads_cv;
 static long handoff_to = -1;
 
-int register_thread_to_queue(long thread_number);
+void register_thread_to_queue(long thread_number);
 int insert_to_queue(dir_data *data);
 dir_data* pop_from_queue(long thread_number);
 void wake_up_thread_if_needed();
 int insert_dir_path_to_queue(char *dir_path);
 int thread_main(void *thread_param);
 void wait_for_wakeup();
+int get_threads_queue_size();
 
-int register_thread_to_queue(long thread_number) {
-    fprintf(stderr, "trying to allocate memory\n");
-    thread_node * new_node = malloc(sizeof(struct thread_node));
-    if (new_node == NULL) {
-        fprintf(stderr, "Failed to allocate memory\n");
-        return EXIT_FAILURE;
+int get_threads_queue_size() {
+    if (thread_queue_last >= thread_queue_first) {
+        return thread_queue_last - thread_queue_first;
     }
-    printf("setting thread number\n");
-    new_node->thread_number=thread_number;
-    printf("finding last in threads queue\n");
-    if (threads_pop_queue.last != NULL) {
-            new_node->next = NULL;
-            threads_pop_queue.last->next = new_node;
-            threads_pop_queue.last = new_node;
-    }
-    else {
-        threads_pop_queue.last = new_node;
-        threads_pop_queue.first = new_node;
-    }
-    printf("found last in threads queue\n");
-    threads_pop_queue.size++;
-    if (threads_pop_queue.size == number_of_threads) {
+    return thread_queue_last + number_of_threads - thread_queue_first;
+}
+
+void register_thread_to_queue(long thread_number) {
+    threads_queue[thread_queue_last] = thread_number;
+    thread_queue_last = (thread_queue_last + 1) % number_of_threads;
+    if (get_threads_queue_size() == number_of_threads) {
         cnd_signal(&all_threads_are_idle_cv);
     }
-    return EXIT_SUCCESS;
 }
 
 int insert_to_queue(dir_data *data) {
-    printf("thread trying to insert to queue\n");
+    printf("path trying to insert to queue\n");
     dir_node *new_node = malloc(sizeof(dir_node));
-    perror("Error: ");
     if (new_node == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
         return EXIT_FAILURE;
     }
-    printf("done malloc\n");
     new_node->dir = data;
-
     mtx_lock(&queue_mutex);
     if (queue.last != NULL) {
         new_node->next = NULL;
@@ -123,9 +100,7 @@ dir_data* pop_from_queue(long thread_number) {
     dir_node *node = queue.first;
     while (node == NULL || (handoff_to != -1 && handoff_to != thread_number) ) {
         // wait until full or until all waiting threads are done
-        if (register_thread_to_queue(thread_number) == EXIT_FAILURE) {
-            return NULL;
-        }
+        register_thread_to_queue(thread_number);
         cnd_wait(&threads_cv[thread_number], &queue_mutex);
         node = queue.first;
     }
@@ -141,19 +116,15 @@ dir_data* pop_from_queue(long thread_number) {
 }
 
 void wake_up_thread_if_needed() {
-    if (threads_pop_queue.size == 0) {
+    if (get_threads_queue_size() == 0) {
         printf("no waiting threads\n");
         return;
     }
-    thread_node *node = threads_pop_queue.first;
-    threads_pop_queue.first = node->next;
-    if (threads_pop_queue.last == node) {
-        threads_pop_queue.last = NULL;
-    }
-    handoff_to = node->thread_number; // giving priority to the thread
-    threads_pop_queue.size--;
+    long thread_number_to_wake = threads_queue[thread_queue_first];
+    thread_queue_first = (thread_queue_first + 1) % number_of_threads;
+    handoff_to = thread_number_to_wake; // giving priority to the thread
     printf("waking up thread number %ld\n", handoff_to);
-    free(node);
+    cnd_sign(&threads_cv[thread_number_to_wake]);
 }
 
 int insert_dir_path_to_queue(char *dir_path) {
@@ -267,6 +238,8 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Failed to allocate memory\n");
         exit(EXIT_FAILURE);
     }
+    // threads waiting queue is a circular list
+    threads_queue = calloc(number_of_threads, sizeof (long));
 
     // init mutex and cv for starting threads
     mtx_init(&count_ready_threads_mutex, mtx_plain);
