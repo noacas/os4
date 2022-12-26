@@ -11,6 +11,8 @@
 #include <errno.h>
 #include <threads.h>
 
+#define PERMISSION_DENIED 2
+
 typedef struct dir_data {
     char path[PATH_MAX];
     DIR *dir;
@@ -151,7 +153,7 @@ int insert_dir_path_to_queue(char *dir_path) {
     fd = access(dir_path, F_OK);
     if(fd == -1){
         fprintf(stderr, "Directory %s: Permission denied.\n", dir_path);
-        return EXIT_SUCCESS;
+        return PERMISSION_DENIED;
     }
 
     dir = opendir(dir_path);
@@ -205,12 +207,13 @@ int thread_main(void *thread_param) {
             strcpy(new_path, dir_data->path);
             strcat(new_path, "/");
             strcat(new_path, dp->d_name);
+            fprintf("found path %s", new_path);
             if (lstat(new_path, &entry_stats) != 0){
                 fprintf(stderr, "Failed to get stats on %s: %s\n", new_path, strerror(errno));
                 error_in_thread = 1;
             }
             else if (S_ISDIR(entry_stats.st_mode)) {
-                if (insert_dir_path_to_queue(new_path) != EXIT_SUCCESS) {
+                if (insert_dir_path_to_queue(new_path) == EXIT_FAILURE) {
                     error_in_thread = 1;
                 }
             }
