@@ -133,11 +133,6 @@ int insert_dir_path_to_queue(char *dir_path) {
     int fd;
     dir_data *dir_data;
 
-    printf("1\n");
-    if (dir_path == NULL) {
-        fprintf(stderr, "dir_path is NULL.\n");
-    }
-    printf("2\n");
     fd = access(dir_path, F_OK);
     if(fd == -1){
         fprintf(stderr, "Directory %s: Permission denied.\n", dir_path);
@@ -150,15 +145,18 @@ int insert_dir_path_to_queue(char *dir_path) {
         fprintf(stderr, "Failed to open directory %s: %s\n", dir_path, strerror(errno));
         return EXIT_FAILURE;
     }
-
+    printf("4\n");
     dir_data = malloc(sizeof(dir_data));
     if (dir_data == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
         return EXIT_FAILURE;
     }
+    printf("5\n");
 
     dir_data->dir=dir;
+    printf("6\n");
     strcpy(dir_data->path, dir_path);
+    printf("7\n");
 
     return insert_to_queue(dir_data);
 }
