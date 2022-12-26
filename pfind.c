@@ -86,7 +86,7 @@ int register_thread_to_queue(long thread_number) {
 }
 
 int insert_to_queue(dir_data *data) {
-    printf("thread trying to insert to queue");
+    printf("thread trying to insert to queue\n");
     dir_node *new_node = malloc(sizeof(dir_node));
     if (new_node == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
@@ -146,7 +146,7 @@ void wake_up_thread_if_needed() {
     }
     handoff_to = node->thread_number; // giving priority to the thread
     threads_pop_queue.size--;
-    printf("waking up thread number %ld", handoff_to);
+    printf("waking up thread number %ld\n", handoff_to);
     free(node);
 }
 
@@ -214,6 +214,7 @@ int thread_main(void *thread_param) {
                 continue;
             }
             // create string of file path
+            printf("coping path %s\n", new_path);
             strcpy(new_path, dir_data->path);
             strcat(new_path, "/");
             strcat(new_path, dp->d_name);
