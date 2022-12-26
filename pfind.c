@@ -133,6 +133,9 @@ int insert_dir_path_to_queue(char *dir_path) {
     int fd;
     dir_data *dir_data;
 
+    if (dir_path == NULL) {
+        fprintf(stderr, "dir_path is NULL.\n");
+    }
     fd = access(dir_path, F_OK);
     if(fd == -1){
         fprintf(stderr, "Directory %s: Permission denied.\n", dir_path);
