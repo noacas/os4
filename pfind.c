@@ -52,6 +52,13 @@ cnd_t all_threads_are_idle_cv;
 cnd_t *threads_cv;
 static long handoff_to = -1;
 
+int register_thread_to_queue(long thread_number);
+int insert_to_queue(dir_data *data);
+dir_data* pop_from_queue(long thread_number);
+void wake_up_thread_if_needed();
+int insert_dir_path_to_queue(char *dir_path);
+void thread_main(void *thread_param);
+
 int register_thread_to_queue(long thread_number) {
     thread_node * new_node = malloc(sizeof (thread_node));
     if (new_node == NULL) {
@@ -194,7 +201,10 @@ void thread_main(void *thread_param) {
             if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0) {
                 continue;
             }
-            sprintf(new_path, "%s/%s", dir_data->path, dp->d_name); // create string of file path
+            // create string of file path
+            strcpy(new_path, dir_data->path);
+            strcat(new_path, "/");
+            strcat(new_path, dp->d_name);
             if (lstat(new_path, &entry_stats) != 0){
                 fprintf(stderr, "Failed to get stats on %s: %s\n", new_path, strerror(errno));
                 error_in_thread = 1;
@@ -242,18 +252,18 @@ int main(int argc, char *argv[]) {
     cnd_init(&count_ready_threads_cv);
     cnd_init(&start_all_threads_cv);
     //init mutex and cv for waiting queue
-    mtx_init(&queue_mutex);
+    mtx_init(&queue_mutex, mtx_plain);
     cnd_init(&all_threads_are_idle_cv);
     threads_cv = calloc(n, sizeof(cnd_t));
     if (threads_cv == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
         exit(EXIT_FAILURE);
     }
-    for (size_t i = 0; i < number_of_threads; i++) {
+    for (long i = 0; i < number_of_threads; i++) {
         cnd_init(&threads_cv[i]);
     }
 
-    for (size_t i = 0; i < number_of_threads; i++) {
+    for (long i = 0; i < number_of_threads; i++) {
         rc = thrd_create(&thread_ids[i], thread_main, (void *) i);
         if (rc != thrd_success) {
             fprintf(stderr, "Failed creating thread\n");
@@ -264,7 +274,7 @@ int main(int argc, char *argv[]) {
     // wait for all threads to be created
     mtx_lock(&count_ready_threads_mutex);
     while (ready_threads < number_of_threads) {
-        cnd_wait(&count_ready_threads_cv, &count_mutex);
+        cnd_wait(&count_ready_threads_cv, &count_ready_threads_mutex);
     }
     mtx_unlock(&count_ready_threads_mutex);
 
