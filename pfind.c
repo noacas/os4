@@ -12,6 +12,7 @@
 #include <threads.h>
 
 #define PERMISSION_DENIED 2
+#define HANDOFF_TO_NO_ONE -1
 
 typedef struct dir_data {
     char path[PATH_MAX];
@@ -43,7 +44,8 @@ cnd_t start_all_threads_cv;
 mtx_t queue_mutex;
 cnd_t all_threads_are_idle_cv;
 cnd_t *threads_cv;
-static long handoff_to = -1;
+cnd_t priority_thread_is_done_cv;
+static long handoff_to = HANDOFF_TO_NO_ONE;
 
 int thread_main(void *thread_param);
 void wait_for_wakeup();
@@ -79,6 +81,10 @@ int insert_to_queue(dir_data *data) {
     }
     new_node->dir = data;
     mtx_lock(&queue_mutex);
+    // let thread with priority pop from query (queue is not empty) before letting other threads to insert to queue
+    while (handoff_to != HANDOFF_TO_NO_ONE) {
+        cnd_wait(&priority_thread_is_done_cv, &queue_mutex);
+    }
     if (queue.last != NULL) {
         new_node->next = NULL;
         queue.last->next = new_node;
@@ -99,7 +105,7 @@ dir_data* pop_from_queue(long thread_number) {
     dir_data *d;
     mtx_lock(&queue_mutex);
     dir_node *node = queue.first;
-    while (node == NULL || (handoff_to != -1 && handoff_to != thread_number) ) {
+    while (node == NULL || (handoff_to != HANDOFF_TO_NO_ONE && handoff_to != thread_number) ) {
         // wait until full or until all waiting threads are done
         register_thread_to_queue(thread_number);
         cnd_wait(&threads_cv[thread_number], &queue_mutex);
@@ -109,7 +115,8 @@ dir_data* pop_from_queue(long thread_number) {
     if (queue.last == node) {
         queue.last = NULL;
     }
-    handoff_to = -1; // giving up on priority
+    handoff_to = HANDOFF_TO_NO_ONE; // giving up on priority
+    cnd_broadcast(&priority_thread_is_done_cv);
     mtx_unlock(&queue_mutex);
     d = node->dir;
     free(node);
@@ -252,6 +259,7 @@ int main(int argc, char *argv[]) {
     //init mutex and cv for waiting queue
     mtx_init(&queue_mutex, mtx_plain);
     cnd_init(&all_threads_are_idle_cv);
+    cnd_init(&priority_thread_is_done_cv);
     threads_cv = calloc(number_of_threads, sizeof(cnd_t));
     if (threads_cv == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
