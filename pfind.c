@@ -152,7 +152,7 @@ int insert_dir_path_to_queue(char *dir_path) {
         return EXIT_FAILURE;
     }
     printf("5\n");
-
+    printf("ptr %p, ptr %p\n", dir_data, dir);
     dir_data->dir=dir;
     printf("6\n");
     strcpy(dir_data->path, dir_path);
