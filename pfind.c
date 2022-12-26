@@ -91,7 +91,8 @@ int register_thread_to_queue(long thread_number) {
 
 int insert_to_queue(dir_data *data) {
     printf("thread trying to insert to queue\n");
-    dir_node *new_node = malloc(sizeof(struct dir_node));
+    dir_node *new_node = malloc(sizeof(dir_node));
+    perror("Error: ");
     if (new_node == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
         return EXIT_FAILURE;
