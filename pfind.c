@@ -124,7 +124,7 @@ void wake_up_thread_if_needed() {
     thread_queue_first = (thread_queue_first + 1) % number_of_threads;
     handoff_to = thread_number_to_wake; // giving priority to the thread
     printf("waking up thread number %ld\n", handoff_to);
-    cnd_sign(&threads_cv[thread_number_to_wake]);
+    cnd_signal(&threads_cv[thread_number_to_wake]);
 }
 
 int insert_dir_path_to_queue(char *dir_path) {
