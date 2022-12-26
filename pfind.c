@@ -63,7 +63,8 @@ int thread_main(void *thread_param);
 void wait_for_wakeup();
 
 int register_thread_to_queue(long thread_number) {
-    thread_node * new_node = malloc(sizeof (thread_node));
+    fprintf(stderr, "trying to allocate memory\n");
+    thread_node * new_node = malloc(sizeof(struct thread_node));
     if (new_node == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
         return EXIT_FAILURE;
