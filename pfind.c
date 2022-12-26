@@ -131,7 +131,7 @@ void wake_up_thread_if_needed() {
 int insert_dir_path_to_queue(char *dir_path) {
     DIR *dir;
     int fd;
-    dir_data *dir_data;
+    dir_data *dir_data = NULL;
 
     fd = access(dir_path, F_OK);
     if(fd == -1){
