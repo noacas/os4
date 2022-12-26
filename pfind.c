@@ -112,7 +112,7 @@ dir_data* pop_from_queue(long thread_number) {
     handoff_to = -1; // giving up on priority
     mtx_unlock(&queue_mutex);
     d = node->dir;
-    free(node);
+    //free(node);
     return d;
 }
 
