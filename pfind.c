@@ -207,7 +207,7 @@ int thread_main(void *thread_param) {
             strcpy(new_path, dir_data->path);
             strcat(new_path, "/");
             strcat(new_path, dp->d_name);
-            fprintf("found path %s", new_path);
+            printf("found path %s", new_path);
             if (lstat(new_path, &entry_stats) != 0){
                 fprintf(stderr, "Failed to get stats on %s: %s\n", new_path, strerror(errno));
                 error_in_thread = 1;
