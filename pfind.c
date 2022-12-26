@@ -112,7 +112,7 @@ dir_data* pop_from_queue(long thread_number) {
     handoff_to = -1; // giving up on priority
     mtx_unlock(&queue_mutex);
     d = node->dir;
-    //free(node);
+    free(node);
     return d;
 }
 
@@ -149,6 +149,7 @@ int insert_dir_path_to_queue(char *dir_path) {
         fprintf(stderr, "Failed to allocate memory\n");
         return EXIT_FAILURE;
     }
+    printf("dir_data->path is %s\n", dir_data->path);
     if (dir_data->dir == NULL) {
         printf("dir_data->dir is NULL\n");
     } else {
