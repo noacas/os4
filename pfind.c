@@ -71,7 +71,7 @@ void register_thread_to_queue(long thread_number) {
 }
 
 int insert_to_queue(dir_data *data) {
-    printf("path trying to insert to queue\n");
+    printf("trying to insert to queue path %s\n", data->path);
     dir_node *new_node = malloc(sizeof(dir_node));
     if (new_node == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
@@ -239,9 +239,6 @@ int main(int argc, char *argv[]) {
     }
     // threads waiting queue is a circular list
     threads_queue = calloc(number_of_threads, sizeof (long));
-
-    queue.first = NULL;
-    queue.last = NULL;
 
     // init mutex and cv for starting threads
     mtx_init(&count_ready_threads_mutex, mtx_plain);
