@@ -68,7 +68,9 @@ int register_thread_to_queue(long thread_number) {
         fprintf(stderr, "Failed to allocate memory\n");
         return EXIT_FAILURE;
     }
+    printf("setting thread number\n");
     new_node->thread_number=thread_number;
+    printf("finding last in threads queue\n");
     if (threads_pop_queue.last != NULL) {
             new_node->next = NULL;
             threads_pop_queue.last->next = new_node;
@@ -78,6 +80,7 @@ int register_thread_to_queue(long thread_number) {
         threads_pop_queue.last = new_node;
         threads_pop_queue.first = new_node;
     }
+    printf("found last in threads queue\n");
     threads_pop_queue.size++;
     if (threads_pop_queue.size == number_of_threads) {
         cnd_signal(&all_threads_are_idle_cv);
@@ -214,7 +217,7 @@ int thread_main(void *thread_param) {
                 continue;
             }
             // create string of file path
-            printf("coping path %s\n", new_path);
+            printf("coping path %s/%s\n", dir_data->path, dp->d_name);
             strcpy(new_path, dir_data->path);
             strcat(new_path, "/");
             strcat(new_path, dp->d_name);
