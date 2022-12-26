@@ -45,13 +45,14 @@ cnd_t all_threads_are_idle_cv;
 cnd_t *threads_cv;
 static long handoff_to = -1;
 
-void register_thread_to_queue(long thread_number);
-int insert_to_queue(dir_data *data);
-dir_data* pop_from_queue(long thread_number);
-void wake_up_thread_if_needed();
-int insert_dir_path_to_queue(char *dir_path);
 int thread_main(void *thread_param);
 void wait_for_wakeup();
+int insert_dir_path_to_queue(char *dir_path);
+int insert_to_queue(dir_data *data);
+dir_data* pop_from_queue(long thread_number);
+// these should only be accessed with queue_mutex
+void register_thread_to_queue(long thread_number);
+void wake_up_thread_if_needed();
 int get_threads_queue_size();
 
 int get_threads_queue_size() {
@@ -87,7 +88,7 @@ int insert_to_queue(dir_data *data) {
         queue.first = new_node;
     }
 
-    printf("trying to wakeup thread, waiting are %d\n", threads_pop_queue.size);
+    printf("trying to wakeup thread, waiting are %d\n", get_threads_queue_size());
     wake_up_thread_if_needed();
 
     mtx_unlock(&queue_mutex);
@@ -168,7 +169,6 @@ void wait_for_wakeup() {
     }
     mtx_unlock(&count_ready_threads_mutex);
 }
-
 
 int thread_main(void *thread_param) {
     long thread_number = (long)thread_param;
