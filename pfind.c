@@ -191,16 +191,15 @@ int thread_main(void *thread_param) {
                 continue;
             }
             // create string of file path
-            printf("coping path %s/%s\n", dir_data->path, dp->d_name);
             strcpy(new_path, dir_data->path);
             strcat(new_path, "/");
             strcat(new_path, dp->d_name);
-            printf("found path %s\n", new_path);
             if (lstat(new_path, &entry_stats) != 0){
                 fprintf(stderr, "Failed to get stats on %s: %s\n", new_path, strerror(errno));
                 error_in_thread = 1;
             }
             else if (S_ISDIR(entry_stats.st_mode)) {
+                printf("found dir %s\n", new_path);
                 if (insert_dir_path_to_queue(new_path) == EXIT_FAILURE) {
                     error_in_thread = 1;
                 }
@@ -240,6 +239,9 @@ int main(int argc, char *argv[]) {
     }
     // threads waiting queue is a circular list
     threads_queue = calloc(number_of_threads, sizeof (long));
+
+    queue.first = NULL;
+    queue.last = NULL;
 
     // init mutex and cv for starting threads
     mtx_init(&count_ready_threads_mutex, mtx_plain);
