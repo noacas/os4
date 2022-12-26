@@ -144,7 +144,7 @@ int insert_dir_path_to_queue(char *dir_path) {
         fprintf(stderr, "Failed to open directory %s: %s\n", dir_path, strerror(errno));
         return EXIT_FAILURE;
     }
-    dir_data = malloc(sizeof(dir_data));
+    dir_data = calloc(1, sizeof(dir_data));
     if (dir_data == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
         return EXIT_FAILURE;
