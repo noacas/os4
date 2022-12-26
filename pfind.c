@@ -15,7 +15,7 @@
 
 typedef struct dir_data {
     char path[PATH_MAX];
-    DIR *dir;
+    DIR dir;
 } dir_data;
 
 typedef struct dir_node {
@@ -141,7 +141,7 @@ int insert_dir_path_to_queue(char *dir_path) {
     printf("3\n");
 
     dir = opendir(dir_path);
-    if(dir == NULL){
+    if (dir == NULL) {
         fprintf(stderr, "Failed to open directory %s: %s\n", dir_path, strerror(errno));
         return EXIT_FAILURE;
     }
@@ -153,7 +153,7 @@ int insert_dir_path_to_queue(char *dir_path) {
     }
     printf("5\n");
     printf("ptr %p, ptr %p\n", dir_data, dir);
-    dir_data->dir=dir;
+    dir_data->dir=*dir;
     printf("6\n");
     strcpy(dir_data->path, dir_path);
     printf("7\n");
@@ -190,7 +190,7 @@ int thread_main(void *thread_param) {
             error_in_thread = 1;
             continue;
         }
-        while ((dp = readdir(dir_data->dir)) != NULL) {
+        while ((dp = readdir(&dir_data->dir)) != NULL) {
             if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0) {
                 continue;
             }
@@ -214,7 +214,7 @@ int thread_main(void *thread_param) {
                 printf("%s\n", new_path);
             }
         }
-        closedir(dir_data->dir);
+        closedir(&dir_data->dir);
         free(dir_data);
     }
     thrd_exit(EXIT_SUCCESS);
