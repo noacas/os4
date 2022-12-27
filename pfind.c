@@ -122,6 +122,7 @@ char *pop_from_queue(long thread_number) {
         register_thread_to_queue(thread_number);
         cnd_wait(&threads_cv[thread_number], &queue_mutex);
         if (all_threads_need_to_exit) {
+            printf("thread %ld woke up to die\n", thread_number);
             mtx_unlock(&queue_mutex);
             thrd_exit(EXIT_SUCCESS);
         }
