@@ -23,7 +23,6 @@ typedef struct dir_node {
 typedef struct dir_queue {
     dir_node *first;
     dir_node *last;
-    int size;
 } dir_queue;
 
 static int number_of_threads;
@@ -103,7 +102,7 @@ int insert_dir_path_to_queue(char *dir_path) {
         waiting_in_other--;
         printf("thread is out of waiting for handoff to no one, waiting %d\n", waiting_in_other);
     }
-    if (queue.size == 0) {
+    if (queue.last != NULL) {
         new_node->next = NULL;
         queue.last->next = new_node;
         queue.last = new_node;
@@ -111,7 +110,6 @@ int insert_dir_path_to_queue(char *dir_path) {
         queue.last = new_node;
         queue.first = new_node;
     }
-    queue.size++;
 
     wake_up_thread_if_needed();
 
@@ -121,9 +119,9 @@ int insert_dir_path_to_queue(char *dir_path) {
 
 char *pop_from_queue(long thread_number) {
     char *dir_path;
-    dir_node *node;
     mtx_lock(&queue_mutex);
-    while (queue.size == 0 || (handoff_to != HANDOFF_TO_NO_ONE && handoff_to != thread_number) ) {
+    dir_node *node = queue.first;
+    while (node == NULL || (handoff_to != HANDOFF_TO_NO_ONE && handoff_to != thread_number) ) {
         // wait until full or until all waiting threads are done
         printf("thread %ld registered to queue\n", thread_number);
         register_thread_to_queue(thread_number);
@@ -133,8 +131,8 @@ char *pop_from_queue(long thread_number) {
             mtx_unlock(&queue_mutex);
             thrd_exit(EXIT_SUCCESS);
         }
+        node = queue.first;
     }
-    node = queue.first;
     printf("thread %ld exited from queue\n", thread_number);
     printf("before node ptr %p\n", node);
     queue.first = node->next;
@@ -142,7 +140,6 @@ char *pop_from_queue(long thread_number) {
         queue.last = NULL;
     }
     printf("after node ptr\n");
-    queue.size--;
     handoff_to = HANDOFF_TO_NO_ONE; // giving up on priority
     cnd_broadcast(&priority_thread_is_done_cv);
     mtx_unlock(&queue_mutex);
