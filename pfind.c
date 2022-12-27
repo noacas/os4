@@ -38,6 +38,7 @@ cnd_t count_ready_threads_cv;
 static int ready_threads = 0;
 cnd_t start_all_threads_cv;
 mtx_t queue_mutex;
+mtx_t all_threads_are_idle_mutex;
 cnd_t all_threads_are_idle_cv;
 cnd_t *threads_cv;
 cnd_t priority_thread_is_done_cv;
@@ -51,7 +52,6 @@ char* pop_from_queue(long thread_number);
 void register_thread_to_queue(long thread_number);
 void wake_up_thread_if_needed();
 int get_threads_queue_size();
-
 int get_threads_queue_size() {
     if (thread_queue_last >= thread_queue_first) {
         return thread_queue_last - thread_queue_first;
@@ -239,6 +239,7 @@ int main(int argc, char *argv[]) {
     //init mutex and cv for waiting queue
     mtx_init(&queue_mutex, mtx_plain);
     cnd_init(&all_threads_are_idle_cv);
+    mtx_init(&all_threads_are_idle_mutex, mtx_plain);
     cnd_init(&priority_thread_is_done_cv);
     threads_cv = calloc(number_of_threads, sizeof(cnd_t));
     if (threads_cv == NULL) {
@@ -273,6 +274,9 @@ int main(int argc, char *argv[]) {
     cnd_destroy(&start_all_threads_cv);
 
     // wait for all threads to be idle
+    cnd_wait(&all_threads_are_idle_cv, &all_threads_are_idle_mutex);
+    mtx_destroy(&all_threads_are_idle_mutex);
+    cnd_destroy(&all_threads_are_idle_cv);
 
     printf("Done searching, found %d files\n", number_of_files);
 
