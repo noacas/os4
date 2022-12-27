@@ -12,6 +12,7 @@
 #include <threads.h>
 
 #define PERMISSION_DENIED 2
+#define DIR_PATH_IS_FILE 3
 #define HANDOFF_TO_NO_ONE -1
 
 typedef struct dir_node {
@@ -68,6 +69,15 @@ void register_thread_to_queue(long thread_number) {
 
 int insert_dir_path_to_queue(char *dir_path) {
     int fd;
+
+    if (lstat(dir_path, &entry_stats) != 0){
+        fprintf(stderr, "Failed to get stats on %s: %s\n", dir_path, strerror(errno));
+        return EXIT_FAILURE;
+    }
+    else if (!S_ISDIR(entry_stats.st_mode)) {
+        return DIR_PATH_IS_FILE;
+    }
+    printf("found dir %s\n", dir_path);
     fd = access(dir_path, F_OK);
     if(fd == -1){
         fprintf(stderr, "Directory %s: Permission denied.\n", dir_path);
@@ -179,20 +189,19 @@ int thread_main(void *thread_param) {
             strcpy(new_path, dir_path);
             strcat(new_path, "/");
             strcat(new_path, dp->d_name);
-            if (lstat(new_path, &entry_stats) != 0){
-                fprintf(stderr, "Failed to get stats on %s: %s\n", new_path, strerror(errno));
-                error_in_thread = 1;
-            }
-            else if (S_ISDIR(entry_stats.st_mode)) {
-                printf("found dir %s\n", new_path);
-                if (insert_dir_path_to_queue(new_path) == EXIT_FAILURE) {
+
+            switch (insert_dir_path_to_queue(new_path)) {
+                case EXIT_FAILURE:
                     error_in_thread = 1;
-                }
-            }
-            else if (strstr(dp->d_name, search_term) != NULL) {
-                // number of files is atomic
-                number_of_files++;
-                printf("%s\n", new_path);
+                    continue;
+                    break;
+                case DIR_PATH_IS_FILE:
+                    if (strstr(dp->d_name, search_term) != NULL) {
+                        // number of files is atomic
+                        number_of_files++;
+                        printf("%s\n", new_path);
+                    }
+                    break;
             }
         }
         closedir(dir);
