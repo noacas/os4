@@ -69,7 +69,7 @@ void register_thread_to_queue(long thread_number) {
 
 int insert_dir_path_to_queue(char *dir_path) {
     int fd;
-
+    struct stat entry_stats;
     if (lstat(dir_path, &entry_stats) != 0){
         fprintf(stderr, "Failed to get stats on %s: %s\n", dir_path, strerror(errno));
         return EXIT_FAILURE;
@@ -162,7 +162,6 @@ void wait_for_wakeup() {
 
 int thread_main(void *thread_param) {
     long thread_number = (long)thread_param;
-    struct stat entry_stats;
     struct dirent *dp;
     char * dir_path;
     DIR * dir;
