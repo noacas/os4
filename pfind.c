@@ -162,7 +162,6 @@ void wake_up_thread_if_needed() {
     cnd_signal(&threads_cv[thread_number_to_wake]);
 }
 
-
 void wait_for_wakeup() {
     //sleep and broadcast to wake up all threads after they are all ready
     mtx_lock(&count_ready_threads_mutex);
@@ -296,6 +295,11 @@ int main(int argc, char *argv[]) {
     mtx_unlock(&all_threads_are_idle_mutex);
     mtx_destroy(&all_threads_are_idle_mutex);
     cnd_destroy(&all_threads_are_idle_cv);
+
+    for (int i = 0; i < 5; i++) {
+        sleep(5);
+        printf("%d are waiting", get_threads_queue_size());
+    }
 
     // wake up all threads and get them to die
     all_threads_need_to_exit = 1;
