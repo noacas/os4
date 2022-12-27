@@ -95,7 +95,7 @@ int insert_dir_path_to_queue(char *dir_path) {
     return EXIT_SUCCESS;
 }
 
-char* pop_from_queue(long thread_number) {
+char *pop_from_queue(long thread_number) {
     char *dir_path;
     mtx_lock(&queue_mutex);
     dir_node *node = queue.first;
@@ -112,6 +112,11 @@ char* pop_from_queue(long thread_number) {
     handoff_to = HANDOFF_TO_NO_ONE; // giving up on priority
     cnd_broadcast(&priority_thread_is_done_cv);
     mtx_unlock(&queue_mutex);
+    dir_path = calloc(strlen(node->path) + 1, sizeof(char));
+    if (dir_path == NULL) {
+        fprintf(stderr, "Failed to allocate memory\n");
+        return NULL;
+    }
     strcpy(dir_path, node->path);
     free(node);
     return dir_path;
@@ -195,6 +200,7 @@ int thread_main(void *thread_param) {
             }
         }
         closedir(dir);
+        free(dir_path);
     }
     thrd_exit(EXIT_SUCCESS);
 }
