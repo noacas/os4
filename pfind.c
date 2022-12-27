@@ -108,7 +108,7 @@ int insert_dir_path_to_queue(char *dir_path) {
         fprintf(stderr, "Directory %s: Permission denied.\n", dir_path);
         return PERMISSION_DENIED;
     }
-    dir_node *new_node = malloc(sizeof(dir_node));
+    dir_node *new_node = calloc(1, sizeof(dir_node));
     if (new_node == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
         return EXIT_FAILURE;
