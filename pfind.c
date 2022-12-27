@@ -120,6 +120,7 @@ char *pop_from_queue(long thread_number) {
     dir_node *node = queue.first;
     while (node == NULL || (handoff_to != HANDOFF_TO_NO_ONE && handoff_to != thread_number) ) {
         // wait until full or until all waiting threads are done
+        printf("thread %ls registered to queue\n", thread_number);
         register_thread_to_queue(thread_number);
         cnd_wait(&threads_cv[thread_number], &queue_mutex);
         if (all_threads_need_to_exit == 1) {
@@ -129,6 +130,7 @@ char *pop_from_queue(long thread_number) {
         }
         node = queue.first;
     }
+    printf("thread %ls exited from queue\n", thread_number);
     queue.first = node->next;
     if (queue.last == node) {
         queue.last = NULL;
