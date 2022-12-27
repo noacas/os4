@@ -113,7 +113,6 @@ int insert_dir_path_to_queue(char *dir_path) {
         fprintf(stderr, "Failed to allocate memory\n");
         return EXIT_FAILURE;
     }
-    printf("got address %p\n", new_node);
     strcpy(new_node->path, dir_path);
 
     add_node_to_queue(new_node);
@@ -136,6 +135,7 @@ char *pop_from_queue(long thread_number) {
         node = queue.first;
     }
     node = queue.first;
+    printf("got address %p\n", node);
     queue.first = node->next;
     if (queue.last == node) {
         queue.last = NULL;
@@ -205,7 +205,6 @@ int thread_main(void *thread_param) {
             strcpy(new_path, dir_path);
             strcat(new_path, "/");
             strcat(new_path, dp->d_name);
-            printf("the file is %s\n", new_path);
             switch (insert_dir_path_to_queue(new_path)) {
                 case EXIT_FAILURE:
                     error_in_thread = 1;
