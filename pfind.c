@@ -139,6 +139,7 @@ char *pop_from_queue(long thread_number) {
     if (queue.last == node) {
         queue.last = NULL;
     }
+    printf("after node ptr\n");
     handoff_to = HANDOFF_TO_NO_ONE; // giving up on priority
     cnd_broadcast(&priority_thread_is_done_cv);
     mtx_unlock(&queue_mutex);
