@@ -127,12 +127,12 @@ char *pop_from_queue(long thread_number) {
         }
         node = queue.first;
     }
-    printf("before node ptr %p\n", node);
+    //printf("before node ptr %p\n", node);
     queue.first = node->next;
     if (queue.last == node) {
         queue.last = NULL;
     }
-    printf("after node ptr\n");
+    //printf("after node ptr\n");
     handoff_to = HANDOFF_TO_NO_ONE; // giving up on priority
     cnd_broadcast(&priority_thread_is_done_cv);
     mtx_unlock(&queue_mutex);
@@ -142,7 +142,7 @@ char *pop_from_queue(long thread_number) {
         return NULL;
     }
     strcpy(dir_path, node->path);
-    printf("trying to free node %p, %s\n", node, node->path);
+    //printf("trying to free node %p, %s\n", node, node->path);
     //free(node);
     return dir_path;
 }
