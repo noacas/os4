@@ -44,6 +44,7 @@ cnd_t all_threads_are_idle_cv;
 cnd_t *threads_cv;
 cnd_t priority_thread_is_done_cv;
 static long handoff_to = HANDOFF_TO_NO_ONE;
+static int all_threads_need_to_exit;
 
 int thread_main(void *thread_param);
 void wait_for_wakeup();
@@ -120,6 +121,10 @@ char *pop_from_queue(long thread_number) {
         // wait until full or until all waiting threads are done
         register_thread_to_queue(thread_number);
         cnd_wait(&threads_cv[thread_number], &queue_mutex);
+        if (all_threads_need_to_exit) {
+            mtx_unlock(&queue_mutex);
+            thread_exit(EXIT_SUCCESS);
+        }
         node = queue.first;
     }
     queue.first = node->next;
@@ -284,6 +289,16 @@ int main(int argc, char *argv[]) {
     mtx_unlock(&all_threads_are_idle_mutex);
     mtx_destroy(&all_threads_are_idle_mutex);
     cnd_destroy(&all_threads_are_idle_cv);
+
+    // wake up all threads and get them to die
+    all_threads_need_to_exit = 1;
+    for (long i = 0; i < number_of_threads; i++) {
+        cnd_signal(&threads_cv[i]);
+    }
+
+    for (long i = 0; i < number_of_threads; i++) {
+        thrd_join(thread_ids[i], NULL);
+    }
 
     printf("Done searching, found %d files\n", number_of_files);
 
