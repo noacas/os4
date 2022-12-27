@@ -64,7 +64,6 @@ int get_threads_queue_size() {
 void register_thread_to_queue(long thread_number) {
     threads_queue[thread_queue_last] = thread_number;
     thread_queue_last = (thread_queue_last + 1) % thread_queue_capacity;
-    printf("current queue size is %d", get_threads_queue_size());
     if (get_threads_queue_size() == number_of_threads) {
         cnd_signal(&all_threads_are_idle_cv);
     }
