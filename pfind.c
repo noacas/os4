@@ -194,7 +194,6 @@ int thread_main(void *thread_param) {
                     continue;
                     break;
                 case DIR_PATH_IS_FILE:
-                    printf("found file %s\n", new_path);
                     if (strstr(dp->d_name, search_term) != NULL) {
                         // number of files is atomic
                         number_of_files++;
