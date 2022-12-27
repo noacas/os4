@@ -48,12 +48,13 @@ static int all_threads_need_to_exit;
 
 int thread_main(void *thread_param);
 void wait_for_wakeup();
-int insert_dir_path_to_queue(char *dir_path);
 char* pop_from_queue(long thread_number);
+int insert_dir_path_to_queue(char *dir_path);
 // these should only be accessed with queue_mutex
 void register_thread_to_queue(long thread_number);
 void wake_up_thread_if_needed();
 int get_threads_queue_size();
+void add_node_to_queue(dir_node *new_node);
 
 int get_threads_queue_size() {
     if (thread_queue_last >= thread_queue_first) {
@@ -70,6 +71,26 @@ void register_thread_to_queue(long thread_number) {
         mtx_unlock(&queue_mutex);
         thrd_exit(EXIT_SUCCESS);
     }
+}
+
+void add_node_to_queue(dir_node *new_node) {
+    mtx_lock(&queue_mutex);
+    // let thread with priority pop from query (queue is not empty) before letting other threads to insert to queue
+    while (handoff_to != HANDOFF_TO_NO_ONE) {
+        cnd_wait(&priority_thread_is_done_cv, &queue_mutex);
+    }
+    if (queue.last != NULL) {
+        new_node->next = NULL;
+        queue.last->next = new_node;
+        queue.last = new_node;
+    } else {
+        queue.last = new_node;
+        queue.first = new_node;
+    }
+
+    wake_up_thread_if_needed();
+
+    mtx_unlock(&queue_mutex);
 }
 
 int insert_dir_path_to_queue(char *dir_path) {
@@ -93,23 +114,9 @@ int insert_dir_path_to_queue(char *dir_path) {
         return EXIT_FAILURE;
     }
     strcpy(new_node->path, dir_path);
-    mtx_lock(&queue_mutex);
-    // let thread with priority pop from query (queue is not empty) before letting other threads to insert to queue
-    while (handoff_to != HANDOFF_TO_NO_ONE) {
-        cnd_wait(&priority_thread_is_done_cv, &queue_mutex);
-    }
-    if (queue.last != NULL) {
-        new_node->next = NULL;
-        queue.last->next = new_node;
-        queue.last = new_node;
-    } else {
-        queue.last = new_node;
-        queue.first = new_node;
-    }
 
-    wake_up_thread_if_needed();
+    add_node_to_queue(new_node);
 
-    mtx_unlock(&queue_mutex);
     return EXIT_SUCCESS;
 }
 
@@ -216,7 +223,7 @@ int thread_main(void *thread_param) {
             }
         }
         closedir(dir);
-        //(dir_path);
+        //free(dir_path);
     }
     thrd_exit(EXIT_SUCCESS);
 }
