@@ -109,10 +109,11 @@ int insert_dir_path_to_queue(char *dir_path) {
         return PERMISSION_DENIED;
     }
     dir_node *new_node = malloc(sizeof(dir_node));
-    if (new_node == NULL || new_node == 0x1010 || new_node == 0x2020) {
+    if (new_node == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
         return EXIT_FAILURE;
     }
+    printf("got address %p\n", new_node);
     strcpy(new_node->path, dir_path);
 
     add_node_to_queue(new_node);
