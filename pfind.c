@@ -62,6 +62,7 @@ int get_threads_queue_size() {
 void register_thread_to_queue(long thread_number) {
     threads_queue[thread_queue_last] = thread_number;
     thread_queue_last = (thread_queue_last + 1) % number_of_threads;
+    printf("current queue size is %d", get_threads_queue_size());
     if (get_threads_queue_size() == number_of_threads) {
         cnd_signal(&all_threads_are_idle_cv);
     }
@@ -91,8 +92,10 @@ int insert_dir_path_to_queue(char *dir_path) {
     mtx_lock(&queue_mutex);
     // let thread with priority pop from query (queue is not empty) before letting other threads to insert to queue
     while (handoff_to != HANDOFF_TO_NO_ONE) {
+        printf("thread is waiting for handoff to no one");
         cnd_wait(&priority_thread_is_done_cv, &queue_mutex);
     }
+    printf("thread is out of waiting for handoff to no one");
     if (queue.last != NULL) {
         new_node->next = NULL;
         queue.last->next = new_node;
