@@ -94,8 +94,8 @@ int insert_dir_path_to_queue(char *dir_path) {
     while (handoff_to != HANDOFF_TO_NO_ONE) {
         printf("thread is waiting for handoff to no one\n");
         cnd_wait(&priority_thread_is_done_cv, &queue_mutex);
+        printf("thread is out of waiting for handoff to no one\n");
     }
-    printf("thread is out of waiting for handoff to no one\n");
     if (queue.last != NULL) {
         new_node->next = NULL;
         queue.last->next = new_node;
