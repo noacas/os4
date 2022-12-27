@@ -291,11 +291,6 @@ int main(int argc, char *argv[]) {
     cnd_destroy(&count_ready_threads_cv);
     cnd_destroy(&start_all_threads_cv);
 
-    for (int i = 0; i < 5; i++) {
-        sleep(5);
-        printf("%d are waiting\n", get_threads_queue_size());
-    }
-
     // wait for all threads to be idle
     if (all_threads_are_idle == 0) {
         mtx_lock(&all_threads_are_idle_mutex);
