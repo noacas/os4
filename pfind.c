@@ -32,8 +32,9 @@ static long *threads_queue;
 static int thread_queue_first;
 static int thread_queue_last;
 static int thread_queue_capacity;
-_Atomic int number_of_files;
+_Atomic int number_of_files = 0;
 _Atomic int error_in_thread = 0;
+_Atomic int waiting_in_other = 0;
 mtx_t count_ready_threads_mutex;
 cnd_t count_ready_threads_cv;
 static int ready_threads = 0;
@@ -95,9 +96,11 @@ int insert_dir_path_to_queue(char *dir_path) {
     mtx_lock(&queue_mutex);
     // let thread with priority pop from query (queue is not empty) before letting other threads to insert to queue
     while (handoff_to != HANDOFF_TO_NO_ONE) {
-        printf("thread is waiting for handoff to no one\n");
+        waiting_in_other++;
+        printf("thread is waiting for handoff to no one, waiting %d\n", waiting_in_other);
         cnd_wait(&priority_thread_is_done_cv, &queue_mutex);
-        printf("thread is out of waiting for handoff to no one\n");
+        waiting_in_other--;
+        printf("thread is out of waiting for handoff to no one, waiting %d\n", waiting_in_other);
     }
     if (queue.last != NULL) {
         new_node->next = NULL;
