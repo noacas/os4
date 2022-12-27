@@ -293,7 +293,7 @@ int main(int argc, char *argv[]) {
 
     for (int i = 0; i < 5; i++) {
         sleep(5);
-        printf("%d are waiting", get_threads_queue_size());
+        printf("%d are waiting\n", get_threads_queue_size());
     }
 
     // wait for all threads to be idle
