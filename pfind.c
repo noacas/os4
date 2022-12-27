@@ -283,8 +283,6 @@ int main(int argc, char *argv[]) {
 //    mtx_destroy(&all_threads_are_idle_mutex);
 //    cnd_destroy(&all_threads_are_idle_cv);
 
-    sleep(20);
-
     printf("Done searching, found %d files\n", number_of_files);
 
     return error_in_thread;
