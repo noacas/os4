@@ -299,7 +299,7 @@ int main(int argc, char *argv[]) {
     for (long i = 0; i < number_of_threads; i++) {
         cnd_signal(&threads_cv[i]);
     }
-    printf("signaled all\n", number_of_files);
+    printf("signaled all\n");
 
     for (long i = 0; i < number_of_threads; i++) {
         thrd_join(thread_ids[i], NULL);
