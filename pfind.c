@@ -31,6 +31,7 @@ static dir_queue queue;
 static long *threads_queue;
 static int thread_queue_first;
 static int thread_queue_last;
+static int thread_queue_capacity;
 _Atomic int number_of_files;
 _Atomic int error_in_thread = 0;
 mtx_t count_ready_threads_mutex;
@@ -52,16 +53,17 @@ char* pop_from_queue(long thread_number);
 void register_thread_to_queue(long thread_number);
 void wake_up_thread_if_needed();
 int get_threads_queue_size();
+
 int get_threads_queue_size() {
     if (thread_queue_last >= thread_queue_first) {
         return thread_queue_last - thread_queue_first;
     }
-    return thread_queue_last + number_of_threads - thread_queue_first;
+    return thread_queue_last + thread_queue_capacity - thread_queue_first;
 }
 
 void register_thread_to_queue(long thread_number) {
     threads_queue[thread_queue_last] = thread_number;
-    thread_queue_last = (thread_queue_last + 1) % number_of_threads;
+    thread_queue_last = (thread_queue_last + 1) % thread_queue_capacity;
     printf("current queue size is %d", get_threads_queue_size());
     if (get_threads_queue_size() == number_of_threads) {
         cnd_signal(&all_threads_are_idle_cv);
@@ -143,7 +145,7 @@ void wake_up_thread_if_needed() {
         return;
     }
     long thread_number_to_wake = threads_queue[thread_queue_first];
-    thread_queue_first = (thread_queue_first + 1) % number_of_threads;
+    thread_queue_first = (thread_queue_first + 1) % thread_queue_capacity;
     handoff_to = thread_number_to_wake; // giving priority to the thread
     cnd_signal(&threads_cv[thread_number_to_wake]);
 }
@@ -233,7 +235,8 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
     // threads waiting queue is a circular list
-    threads_queue = calloc(number_of_threads, sizeof (long));
+    thread_queue_capacity = number_of_threads + 1;
+    threads_queue = calloc(thread_queue_capacity, sizeof (long));
 
     // init mutex and cv for starting threads
     mtx_init(&count_ready_threads_mutex, mtx_plain);
