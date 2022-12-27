@@ -163,6 +163,7 @@ void wake_up_thread_if_needed() {
     long thread_number_to_wake = threads_queue[thread_queue_first];
     thread_queue_first = (thread_queue_first + 1) % thread_queue_capacity;
     handoff_to = thread_number_to_wake; // giving priority to the thread
+    printf("waking up thread %ld\n", thread_number_to_wake);
     cnd_signal(&threads_cv[thread_number_to_wake]);
 }
 
