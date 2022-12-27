@@ -135,7 +135,6 @@ char *pop_from_queue(long thread_number) {
         node = queue.first;
     }
     node = queue.first;
-    printf("got address %p\n", node);
     queue.first = node->next;
     if (queue.last == node) {
         queue.last = NULL;
