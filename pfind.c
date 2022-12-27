@@ -216,7 +216,7 @@ int thread_main(void *thread_param) {
             }
         }
         closedir(dir);
-        free(dir_path);
+        //(dir_path);
     }
     thrd_exit(EXIT_SUCCESS);
 }
