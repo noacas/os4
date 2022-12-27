@@ -200,7 +200,7 @@ int thread_main(void *thread_param) {
             strcpy(new_path, dir_path);
             strcat(new_path, "/");
             strcat(new_path, dp->d_name);
-
+            printf("the file is %s", new_path);
             switch (insert_dir_path_to_queue(new_path)) {
                 case EXIT_FAILURE:
                     error_in_thread = 1;
