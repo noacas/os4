@@ -123,7 +123,7 @@ char *pop_from_queue(long thread_number) {
         cnd_wait(&threads_cv[thread_number], &queue_mutex);
         if (all_threads_need_to_exit) {
             mtx_unlock(&queue_mutex);
-            thread_exit(EXIT_SUCCESS);
+            thrd_exit(EXIT_SUCCESS);
         }
         node = queue.first;
     }
