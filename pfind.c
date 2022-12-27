@@ -14,13 +14,8 @@
 #define PERMISSION_DENIED 2
 #define HANDOFF_TO_NO_ONE -1
 
-typedef struct dir_data {
-    char path[PATH_MAX];
-    DIR *dir;
-} dir_data;
-
 typedef struct dir_node {
-    dir_data *dir;
+    char path[PATH_MAX];
     struct dir_node *next;
 } dir_node;
 
@@ -50,8 +45,7 @@ static long handoff_to = HANDOFF_TO_NO_ONE;
 int thread_main(void *thread_param);
 void wait_for_wakeup();
 int insert_dir_path_to_queue(char *dir_path);
-int insert_to_queue(dir_data *data);
-dir_data* pop_from_queue(long thread_number);
+char* pop_from_queue(long thread_number);
 // these should only be accessed with queue_mutex
 void register_thread_to_queue(long thread_number);
 void wake_up_thread_if_needed();
@@ -72,14 +66,14 @@ void register_thread_to_queue(long thread_number) {
     }
 }
 
-int insert_to_queue(dir_data *data) {
-    printf("trying to insert to queue path %s\n", data->path);
+int insert_dir_path_to_queue(char *dir_path) {
+    printf("trying to insert to queue path %s\n", dir_path);
     dir_node *new_node = malloc(sizeof(dir_node));
     if (new_node == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
         return EXIT_FAILURE;
     }
-    new_node->dir = data;
+    strcpy(new_node->path, dir_path);
     mtx_lock(&queue_mutex);
     // let thread with priority pop from query (queue is not empty) before letting other threads to insert to queue
     while (handoff_to != HANDOFF_TO_NO_ONE) {
@@ -101,8 +95,8 @@ int insert_to_queue(dir_data *data) {
     return EXIT_SUCCESS;
 }
 
-dir_data* pop_from_queue(long thread_number) {
-    dir_data *d;
+char* pop_from_queue(long thread_number) {
+    char *dir_path;
     mtx_lock(&queue_mutex);
     dir_node *node = queue.first;
     while (node == NULL || (handoff_to != HANDOFF_TO_NO_ONE && handoff_to != thread_number) ) {
@@ -118,9 +112,9 @@ dir_data* pop_from_queue(long thread_number) {
     handoff_to = HANDOFF_TO_NO_ONE; // giving up on priority
     cnd_broadcast(&priority_thread_is_done_cv);
     mtx_unlock(&queue_mutex);
-    d = node->dir;
+    strcpy(dir_path, node->path);
     free(node);
-    return d;
+    return dir_path;
 }
 
 void wake_up_thread_if_needed() {
@@ -135,39 +129,6 @@ void wake_up_thread_if_needed() {
     cnd_signal(&threads_cv[thread_number_to_wake]);
 }
 
-int insert_dir_path_to_queue(char *dir_path) {
-    DIR *dir;
-    int fd;
-    dir_data *dir_data = NULL;
-
-    fd = access(dir_path, F_OK);
-    if(fd == -1){
-        fprintf(stderr, "Directory %s: Permission denied.\n", dir_path);
-        return PERMISSION_DENIED;
-    }
-
-    dir = opendir(dir_path);
-    if(dir == NULL){
-        fprintf(stderr, "Failed to open directory %s: %s\n", dir_path, strerror(errno));
-        return EXIT_FAILURE;
-    }
-    dir_data = calloc(1, sizeof(dir_data));
-    if (dir_data == NULL) {
-        fprintf(stderr, "Failed to allocate memory\n");
-        return EXIT_FAILURE;
-    }
-    printf("dir_data->path is %s\n", dir_data->path);
-    if (dir_data->dir == NULL) {
-        printf("dir_data->dir is NULL\n");
-    } else {
-        printf("dir_data->dir is not NULL, %p\n", dir_data->dir);
-    }
-    printf("ptr %p, ptr %p\n", dir_data, dir);
-    dir_data->dir=dir;
-    strcpy(dir_data->path, dir_path);
-
-    return insert_to_queue(dir_data);
-}
 
 void wait_for_wakeup() {
     //sleep and broadcast to wake up all threads after they are all ready
@@ -186,24 +147,31 @@ int thread_main(void *thread_param) {
     long thread_number = (long)thread_param;
     struct stat entry_stats;
     struct dirent *dp;
-    dir_data *dir_data;
+    char * dir_path;
+    DIR * dir;
     char new_path[PATH_MAX];
+    int fd;
 
     wait_for_wakeup();
     printf("thread number %ld awaken\n", thread_number);
 
     while (1) {
-        dir_data = pop_from_queue(thread_number);
-        if (dir_data == NULL) {
+        dir_path = pop_from_queue(thread_number);
+        if (dir_path == NULL) {
             error_in_thread = 1;
             continue;
         }
-        while ((dp = readdir(dir_data->dir)) != NULL) {
+        dir = opendir(dir_path);
+        if(dir == NULL){
+            fprintf(stderr, "Failed to open directory %s: %s\n", dir_path, strerror(errno));
+            return EXIT_FAILURE;
+        }
+        while ((dp = readdir(dir)) != NULL) {
             if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0) {
                 continue;
             }
             // create string of file path
-            strcpy(new_path, dir_data->path);
+            strcpy(new_path, dir_path);
             strcat(new_path, "/");
             strcat(new_path, dp->d_name);
             if (lstat(new_path, &entry_stats) != 0){
@@ -212,7 +180,11 @@ int thread_main(void *thread_param) {
             }
             else if (S_ISDIR(entry_stats.st_mode)) {
                 printf("found dir %s\n", new_path);
-                if (insert_dir_path_to_queue(new_path) == EXIT_FAILURE) {
+                fd = access(new_path, F_OK);
+                if(fd == -1){
+                    fprintf(stderr, "Directory %s: Permission denied.\n", new_path);
+                }
+                else if (insert_dir_path_to_queue(new_path) == EXIT_FAILURE) {
                     error_in_thread = 1;
                 }
             }
@@ -222,8 +194,7 @@ int thread_main(void *thread_param) {
                 printf("%s\n", new_path);
             }
         }
-        closedir(dir_data->dir);
-        free(dir_data);
+        closedir(dir);
     }
     thrd_exit(EXIT_SUCCESS);
 }
