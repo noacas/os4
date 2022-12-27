@@ -34,7 +34,6 @@ static int thread_queue_last;
 static int thread_queue_capacity;
 _Atomic int number_of_files = 0;
 _Atomic int error_in_thread = 0;
-_Atomic int waiting_in_other = 0;
 mtx_t count_ready_threads_mutex;
 cnd_t count_ready_threads_cv;
 static int ready_threads = 0;
@@ -97,11 +96,7 @@ int insert_dir_path_to_queue(char *dir_path) {
     mtx_lock(&queue_mutex);
     // let thread with priority pop from query (queue is not empty) before letting other threads to insert to queue
     while (handoff_to != HANDOFF_TO_NO_ONE) {
-        waiting_in_other++;
-        printf("thread is waiting for handoff to no one, waiting %d\n", waiting_in_other);
         cnd_wait(&priority_thread_is_done_cv, &queue_mutex);
-        waiting_in_other--;
-        printf("thread is out of waiting for handoff to no one, waiting %d\n", waiting_in_other);
     }
     if (queue.last != NULL) {
         new_node->next = NULL;
@@ -124,18 +119,14 @@ char *pop_from_queue(long thread_number) {
     dir_node *node = queue.first;
     while (node == NULL || (handoff_to != HANDOFF_TO_NO_ONE && handoff_to != thread_number) ) {
         // wait until full or until all waiting threads are done
-        printf("thread %ld registered to queue\n", thread_number);
         register_thread_to_queue(thread_number);
         cnd_wait(&threads_cv[thread_number], &queue_mutex);
-        printf("thread %ld woke up to ?\n", thread_number);
         if (all_threads_need_to_exit == 1) {
-            printf("thread %ld woke up to die\n", thread_number);
             mtx_unlock(&queue_mutex);
             thrd_exit(EXIT_SUCCESS);
         }
         node = queue.first;
     }
-    printf("thread %ld exited from queue\n", thread_number);
     printf("before node ptr %p\n", node);
     queue.first = node->next;
     if (queue.last == node) {
@@ -145,7 +136,6 @@ char *pop_from_queue(long thread_number) {
     handoff_to = HANDOFF_TO_NO_ONE; // giving up on priority
     cnd_broadcast(&priority_thread_is_done_cv);
     mtx_unlock(&queue_mutex);
-    printf("before calloc dir_path ptr\n");
     dir_path = calloc(strlen(node->path) + 1, sizeof(char));
     if (dir_path == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
@@ -164,7 +154,6 @@ void wake_up_thread_if_needed() {
     long thread_number_to_wake = threads_queue[thread_queue_first];
     thread_queue_first = (thread_queue_first + 1) % thread_queue_capacity;
     handoff_to = thread_number_to_wake; // giving priority to the thread
-    printf("waking up thread %ld\n", thread_number_to_wake);
     cnd_signal(&threads_cv[thread_number_to_wake]);
 }
 
@@ -304,14 +293,11 @@ int main(int argc, char *argv[]) {
     mtx_destroy(&all_threads_are_idle_mutex);
     cnd_destroy(&all_threads_are_idle_cv);
 
-    printf("all threads are idle\n");
-
     // wake up all threads and get them to die
     all_threads_need_to_exit = 1;
     for (long i = 0; i < number_of_threads; i++) {
         cnd_signal(&threads_cv[i]);
     }
-    printf("signaled all\n");
 
     for (long i = 0; i < number_of_threads; i++) {
         thrd_join(thread_ids[i], NULL);
