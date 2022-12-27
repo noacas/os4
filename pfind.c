@@ -290,6 +290,8 @@ int main(int argc, char *argv[]) {
     mtx_destroy(&all_threads_are_idle_mutex);
     cnd_destroy(&all_threads_are_idle_cv);
 
+    printf("all threads are idle\n");
+
     // wake up all threads and get them to die
     all_threads_need_to_exit = 1;
     for (long i = 0; i < number_of_threads; i++) {
