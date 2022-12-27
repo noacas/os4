@@ -143,7 +143,7 @@ char *pop_from_queue(long thread_number) {
     }
     strcpy(dir_path, node->path);
     printf("trying to free node %p, %s\n", node, node->path);
-    //free(node);
+    free(node);
     return dir_path;
 }
 
