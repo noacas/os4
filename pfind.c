@@ -127,6 +127,7 @@ char *pop_from_queue(long thread_number) {
         }
         node = queue.first;
     }
+    node = queue.first;
     printf("before node ptr %p\n", node);
     queue.first = node->next;
     if (queue.last == node) {
