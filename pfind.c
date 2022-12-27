@@ -134,7 +134,7 @@ char *pop_from_queue(long thread_number) {
         node = queue.first;
     }
     printf("thread %ld exited from queue\n", thread_number);
-    printf("before node ptr\n");
+    printf("before node ptr %p\n", node);
     queue.first = node->next;
     if (queue.last == node) {
         queue.last = NULL;
@@ -150,8 +150,8 @@ char *pop_from_queue(long thread_number) {
         return NULL;
     }
     strcpy(dir_path, node->path);
-    printf("trying to free node\n");
-    //free(node);
+    printf("trying to free node %p\n", node);
+    free(node);
     return dir_path;
 }
 
