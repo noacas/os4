@@ -109,7 +109,7 @@ int insert_dir_path_to_queue(char *dir_path) {
         return PERMISSION_DENIED;
     }
     dir_node *new_node = malloc(sizeof(dir_node));
-    if (new_node == NULL) {
+    if (new_node == NULL || new_node == 0x1010 || new_node == 0x2020) {
         fprintf(stderr, "Failed to allocate memory\n");
         return EXIT_FAILURE;
     }
@@ -135,12 +135,10 @@ char *pop_from_queue(long thread_number) {
         node = queue.first;
     }
     node = queue.first;
-    //printf("before node ptr %p\n", node);
     queue.first = node->next;
     if (queue.last == node) {
         queue.last = NULL;
     }
-    //printf("after node ptr\n");
     handoff_to = HANDOFF_TO_NO_ONE; // giving up on priority
     cnd_broadcast(&priority_thread_is_done_cv);
     mtx_unlock(&queue_mutex);
@@ -150,8 +148,7 @@ char *pop_from_queue(long thread_number) {
         return NULL;
     }
     strcpy(dir_path, node->path);
-    //printf("trying to free node %p, %s\n", node, node->path);
-    //free(node);
+    free(node);
     return dir_path;
 }
 
@@ -223,7 +220,7 @@ int thread_main(void *thread_param) {
             }
         }
         closedir(dir);
-        //free(dir_path);
+        free(dir_path);
     }
     thrd_exit(EXIT_SUCCESS);
 }
