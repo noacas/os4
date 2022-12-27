@@ -77,7 +77,6 @@ int insert_dir_path_to_queue(char *dir_path) {
     else if (!S_ISDIR(entry_stats.st_mode)) {
         return DIR_PATH_IS_FILE;
     }
-    printf("found dir %s\n", dir_path);
     fd = access(dir_path, F_OK);
     if(fd == -1){
         fprintf(stderr, "Directory %s: Permission denied.\n", dir_path);
@@ -195,6 +194,7 @@ int thread_main(void *thread_param) {
                     continue;
                     break;
                 case DIR_PATH_IS_FILE:
+                    printf("found file %s\n", new_path);
                     if (strstr(dp->d_name, search_term) != NULL) {
                         // number of files is atomic
                         number_of_files++;
