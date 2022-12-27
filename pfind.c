@@ -142,6 +142,7 @@ char *pop_from_queue(long thread_number) {
     handoff_to = HANDOFF_TO_NO_ONE; // giving up on priority
     cnd_broadcast(&priority_thread_is_done_cv);
     mtx_unlock(&queue_mutex);
+    printf("before calloc dir_path ptr\n");
     dir_path = calloc(strlen(node->path) + 1, sizeof(char));
     if (dir_path == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
