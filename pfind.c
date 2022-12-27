@@ -41,6 +41,7 @@ cnd_t start_all_threads_cv;
 mtx_t queue_mutex;
 mtx_t all_threads_are_idle_mutex;
 cnd_t all_threads_are_idle_cv;
+static int all_threads_are_idle;
 cnd_t *threads_cv;
 cnd_t priority_thread_is_done_cv;
 static long handoff_to = HANDOFF_TO_NO_ONE;
@@ -67,6 +68,7 @@ void register_thread_to_queue(long thread_number) {
     threads_queue[thread_queue_last] = thread_number;
     thread_queue_last = (thread_queue_last + 1) % thread_queue_capacity;
     if (get_threads_queue_size() == number_of_threads) {
+        all_threads_are_idle = 1;
         cnd_signal(&all_threads_are_idle_cv);
         mtx_unlock(&queue_mutex);
         thrd_exit(EXIT_SUCCESS);
@@ -289,16 +291,18 @@ int main(int argc, char *argv[]) {
     cnd_destroy(&count_ready_threads_cv);
     cnd_destroy(&start_all_threads_cv);
 
-    // wait for all threads to be idle
-    mtx_lock(&all_threads_are_idle_mutex);
-    cnd_wait(&all_threads_are_idle_cv, &all_threads_are_idle_mutex);
-    mtx_unlock(&all_threads_are_idle_mutex);
-    mtx_destroy(&all_threads_are_idle_mutex);
-    cnd_destroy(&all_threads_are_idle_cv);
-
     for (int i = 0; i < 5; i++) {
         sleep(5);
         printf("%d are waiting", get_threads_queue_size());
+    }
+
+    // wait for all threads to be idle
+    if (all_threads_are_idle == 0) {
+        mtx_lock(&all_threads_are_idle_mutex);
+        cnd_wait(&all_threads_are_idle_cv, &all_threads_are_idle_mutex);
+        mtx_unlock(&all_threads_are_idle_mutex);
+        mtx_destroy(&all_threads_are_idle_mutex);
+        cnd_destroy(&all_threads_are_idle_cv);
     }
 
     // wake up all threads and get them to die
