@@ -274,7 +274,9 @@ int main(int argc, char *argv[]) {
     cnd_destroy(&start_all_threads_cv);
 
     // wait for all threads to be idle
+    mtx_lock(&all_threads_are_idle_mutex);
     cnd_wait(&all_threads_are_idle_cv, &all_threads_are_idle_mutex);
+    mtx_unlock(&all_threads_are_idle_mutex);
     mtx_destroy(&all_threads_are_idle_mutex);
     cnd_destroy(&all_threads_are_idle_cv);
 
