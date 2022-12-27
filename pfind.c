@@ -13,7 +13,7 @@
 
 #define PERMISSION_DENIED 2
 #define DIR_PATH_IS_FILE 3
-//#define HANDOFF_TO_NO_ONE -1
+#define HANDOFF_TO_NO_ONE -1
 
 typedef struct dir_node {
     char path[PATH_MAX];
@@ -43,7 +43,7 @@ mtx_t all_threads_are_idle_mutex;
 cnd_t all_threads_are_idle_cv;
 cnd_t *threads_cv;
 cnd_t priority_thread_is_done_cv;
-//static long handoff_to = HANDOFF_TO_NO_ONE;
+static long handoff_to = HANDOFF_TO_NO_ONE;
 
 int thread_main(void *thread_param);
 void wait_for_wakeup();
@@ -93,12 +93,11 @@ int insert_dir_path_to_queue(char *dir_path) {
     strcpy(new_node->path, dir_path);
     mtx_lock(&queue_mutex);
     // let thread with priority pop from query (queue is not empty) before letting other threads to insert to queue
-//    while (handoff_to != HANDOFF_TO_NO_ONE) {
-//        printf("thread is waiting for handoff to no one\n");
-//        cnd_wait(&priority_thread_is_done_cv, &queue_mutex);
-//        printf("thread is out of waiting for handoff to no one\n");
-//    }
-    cnd_wait(&priority_thread_is_done_cv, &queue_mutex);
+    while (handoff_to != HANDOFF_TO_NO_ONE) {
+        printf("thread is waiting for handoff to no one\n");
+        cnd_wait(&priority_thread_is_done_cv, &queue_mutex);
+        printf("thread is out of waiting for handoff to no one\n");
+    }
     if (queue.last != NULL) {
         new_node->next = NULL;
         queue.last->next = new_node;
@@ -118,7 +117,7 @@ char *pop_from_queue(long thread_number) {
     char *dir_path;
     mtx_lock(&queue_mutex);
     dir_node *node = queue.first;
-    while (node == NULL ){//|| (handoff_to != HANDOFF_TO_NO_ONE && handoff_to != thread_number) ) {
+    while (node == NULL || (handoff_to != HANDOFF_TO_NO_ONE && handoff_to != thread_number) ) {
         // wait until full or until all waiting threads are done
         register_thread_to_queue(thread_number);
         cnd_wait(&threads_cv[thread_number], &queue_mutex);
@@ -128,7 +127,7 @@ char *pop_from_queue(long thread_number) {
     if (queue.last == node) {
         queue.last = NULL;
     }
-    //handoff_to = HANDOFF_TO_NO_ONE; // giving up on priority
+    handoff_to = HANDOFF_TO_NO_ONE; // giving up on priority
     cnd_broadcast(&priority_thread_is_done_cv);
     mtx_unlock(&queue_mutex);
     dir_path = calloc(strlen(node->path) + 1, sizeof(char));
@@ -147,7 +146,7 @@ void wake_up_thread_if_needed() {
     }
     long thread_number_to_wake = threads_queue[thread_queue_first];
     thread_queue_first = (thread_queue_first + 1) % thread_queue_capacity;
-    //handoff_to = thread_number_to_wake; // giving priority to the thread
+    handoff_to = thread_number_to_wake; // giving priority to the thread
     cnd_signal(&threads_cv[thread_number_to_wake]);
 }
 
