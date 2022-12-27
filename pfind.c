@@ -95,7 +95,6 @@ void add_node_to_queue(dir_node *new_node) {
 }
 
 int insert_dir_path_to_queue(char *dir_path) {
-    int fd;
     struct stat entry_stats;
     if (lstat(dir_path, &entry_stats) != 0){
         fprintf(stderr, "Failed to get stats on %s: %s\n", dir_path, strerror(errno));
@@ -103,11 +102,6 @@ int insert_dir_path_to_queue(char *dir_path) {
     }
     else if (!S_ISDIR(entry_stats.st_mode)) {
         return DIR_PATH_IS_FILE;
-    }
-    fd = access(dir_path, F_OK);
-    if(fd == -1){
-        fprintf(stderr, "Directory %s: Permission denied.\n", dir_path);
-        return PERMISSION_DENIED;
     }
     if (!(entry_stats.st_mode & S_IXUSR && entry_stats.st_mode & S_IRUSR)) {
         fprintf(stderr, "Directory %s: Permission denied.\n", dir_path);
