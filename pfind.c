@@ -67,6 +67,12 @@ void register_thread_to_queue(long thread_number) {
 }
 
 int insert_dir_path_to_queue(char *dir_path) {
+    int fd;
+    fd = access(dir_path, F_OK);
+    if(fd == -1){
+        fprintf(stderr, "Directory %s: Permission denied.\n", dir_path);
+        return PERMISSION_DENIED;
+    }
     dir_node *new_node = malloc(sizeof(dir_node));
     if (new_node == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
@@ -151,7 +157,6 @@ int thread_main(void *thread_param) {
     char * dir_path;
     DIR * dir;
     char new_path[PATH_MAX];
-    int fd;
 
     wait_for_wakeup();
 
@@ -180,11 +185,7 @@ int thread_main(void *thread_param) {
             }
             else if (S_ISDIR(entry_stats.st_mode)) {
                 printf("found dir %s\n", new_path);
-                fd = access(new_path, F_OK);
-                if(fd == -1){
-                    fprintf(stderr, "Directory %s: Permission denied.\n", new_path);
-                }
-                else if (insert_dir_path_to_queue(new_path) == EXIT_FAILURE) {
+                if (insert_dir_path_to_queue(new_path) == EXIT_FAILURE) {
                     error_in_thread = 1;
                 }
             }
