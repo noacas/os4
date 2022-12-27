@@ -80,7 +80,6 @@ void add_node_to_queue(dir_node *new_node) {
         cnd_wait(&priority_thread_is_done_cv, &queue_mutex);
     }
     if (queue.last != NULL) {
-        new_node->next = NULL;
         queue.last->next = new_node;
         queue.last = new_node;
     } else {
@@ -114,6 +113,7 @@ int insert_dir_path_to_queue(char *dir_path) {
         return EXIT_FAILURE;
     }
     strcpy(new_node->path, dir_path);
+    new_node->next = NULL;
 
     add_node_to_queue(new_node);
 
