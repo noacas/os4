@@ -109,6 +109,10 @@ int insert_dir_path_to_queue(char *dir_path) {
         fprintf(stderr, "Directory %s: Permission denied.\n", dir_path);
         return PERMISSION_DENIED;
     }
+    if (!(entry_stats.st_mode & S_IXUSR && entry_stats.st_mode & S_IRUSR)) {
+        fprintf(stderr, "Directory %s: Permission denied.\n", dir_path);
+        return PERMISSION_DENIED;
+    }
     dir_node *new_node = calloc(1, sizeof(dir_node));
     if (new_node == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
